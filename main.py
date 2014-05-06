@@ -10,7 +10,37 @@ import email
 import numpy
 import scipy
 from gensim import corpora, models, similarities
+
 keywordList = []
+
+################ Message Class ################
+
+## Class for each email message. Contains information
+## pertaining to the message including the question and
+## response, file location, keywords, etc.
+class Message:
+    messageCount = 0
+
+    def __init__(self, fileLocation):
+        Message.messageCount += 1
+        self.fileLocation = fileLocation
+        self.plainText = readEmail(self.fileLocation)
+        self.keywords = formatEmail(self.plainText)
+
+    def getCount(self): 
+        return Message.messageCount
+
+    def getFileLocation(self): 
+        return self.FileLocation
+
+    def getPlainText(self): 
+        return self.plainText
+
+    def getCount(self): 
+        return self.messageCount
+
+    def getKeywords(self): 
+        return self.keywords
 
 ################ Email ################
 
@@ -52,7 +82,7 @@ def setupArchive(emails):
     for item in emails:
         msg = readEmail(item)
         msg = formatEmail(msg)
-        print msg
+        #print msg
         arch.append(msg)
     return arch
 
@@ -162,13 +192,21 @@ def checkSimilarity(texts, doc):
 
 ## Main function that runs
 def main():
+
+    email1 = Message("testEmail1.txt")
+    print email1.getKeywords()
+
     loadKeywords()
     archive = setupArchive(["testEmail1.txt", "testEmail2.txt", "testEmail3.txt", "testEmail4.txt"])
-    msg2 = ['nwea', 'testing', 'not', 'password']
-    result = checkSimilarity(archive,msg2)
+    newMessage = ['nwea', 'testing', 'not', 'password']
+    result = checkSimilarity(archive,newMessage)
     print result
-    best = result[0][0]
-    print best
+    best = []
+    for i in range(len(result)):
+        if result[i][1] > 0.990:
+            best.append(archive[result[i][0]])
+    #print "Best results are: " + str(best)
+    #best = result[0][0]
     #print keywordList
     #print ("Keywords Matched: %s" % checkKeywords(msg))
     #print (addKeyword("password"))
