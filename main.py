@@ -12,6 +12,7 @@ import scipy
 from gensim import corpora, models, similarities
 
 keywordList = []
+archive = []
 
 ################ Message Class ################
 
@@ -26,6 +27,7 @@ class Message:
         self.fileLocation = fileLocation
         self.plainText = readEmail(self.fileLocation)
         self.keywords = formatEmail(self.plainText)
+        addToArchive(self.keywords)
 
     def getCount(self): 
         return Message.messageCount
@@ -54,6 +56,8 @@ def readEmail(filename):
     #print 'From: %s' % message['from']
     #print 'Subject: %s' % message['subject']
     parts = message.get_payload()
+    #TODO Check for message before getting payload
+    #print parts
     msg = parts[0].get_payload()
     msg = msg + ' ' + message['from']
     msg = msg + ' ' + message['subject']
@@ -77,14 +81,9 @@ def formatEmail(txt):
 
 ## Setup archive by pulling in emails and adding questions
 ## and results to archive
-def setupArchive(emails):
-    arch = []
-    for item in emails:
-        msg = readEmail(item)
-        msg = formatEmail(msg)
-        #print msg
-        arch.append(msg)
-    return arch
+def addToArchive(msgKeywords):
+    global archive    
+    archive.append(msgKeywords)
 
 ## Search through a message for keywords
 ## Pull in keywords from known keywords + look for new ones
@@ -99,23 +98,27 @@ def checkKeywords(msg):
 
 ## Split .mbox into individual files
 ## Careful as this does make a lot of files...
-def splitEmails(filename):
+def splitEmails(filename, locToSave):
     fin = open(filename, 'r')
     data = fin.readlines()
     count = 0
     f = False
+    listEmails = []
     for line in data:
         if f == False:
-            name = 'email'+str(count)+'.txt'
+            name = locToSave+'email'+str(count)+'.txt'
+            listEmails.append(name)
             fout = open(name, 'w')
             f = True
         fout.write(line)
+        #TODO Keep first file open while writting first msg
         if (line[:5] == "From "):
             count = count+1
             fout.close()
             f = False
     fin.close()
-    return "Created " + str(count) + " files from emails."
+    print "Created " + str(count) + " files from emails."
+    return listEmails
 
 
 ################ Keywords ################
@@ -136,7 +139,7 @@ def loadKeywords():
 ## Takes in newKeyword and returns T/F if added
 ## Checks to ensure not adding a duplicate
 def addKeyword(newKeyword):
-    # Todo: fix with updated global keywordList
+    # TODO Fix with updated global keywordList
     fin = open("keywords.txt",'r+')
     data = fin.readlines()
     #print newKeyword in keywordList
@@ -173,13 +176,9 @@ def removeKeyword(remKeyword):
 ## Takes in archive of old email questions and the new message
 ## then compares them. The old email questions are returned with
 ## a percentage of how close theypatch the new message
-def checkSimilarity(texts, doc):
+def checkSimilarity(dictionary,corpus,lsi, doc):
     # Part of this method was taken and then modified from the tutorial
     # on the gensim python page http://radimrehurek.com/gensim/tutorial.html
-    dictionary = corpora.Dictionary(texts)
-    corpus = [dictionary.doc2bow(text) for text in texts]
-    lsi = models.LsiModel(corpus, id2word=dictionary, num_topics=2)
-
     vec_bow = dictionary.doc2bow(doc)
     vec_lsi = lsi[vec_bow]
 
@@ -188,23 +187,63 @@ def checkSimilarity(texts, doc):
     sims = sorted(enumerate(sims), key=lambda item: -item[1])
     return sims
 
+## Builds the dictionary corpus to be searched through when comparing messages
+def buildDictionary(texts):
+    dictionary = corpora.Dictionary(texts)
+    corpus = [dictionary.doc2bow(text) for text in texts]
+    lsi = models.LsiModel(corpus, id2word=dictionary, num_topics=2)
+    return dictionary, corpus, lsi
+
+    
+## Get initial information from the user
+def getInfo():
+    print "This program will tell you which emails are similar to one another."
+    mbox = 'i'
+    while (mbox == 'i'):
+        mbox = raw_input("Do you have a .mbox archive of your email to use? i=more info (y/n/i): ")
+        if mbox == 'y':
+            fileLoc = raw_input(("Please enter the location and name of your .mbox file (ex: /users/you/Downlods/myEmails.mbox): ")
+            locToSave =  raw_input("Please enter the location that you would like to save these emails (ex: /users/you/Documents/myEmails/): ")
+            cont = raw_input("Are you sure you want to use your .mbox? This will split the archive into individual email files. Careful as this does make a lot of files... (y/n): ")
+            if cont == 'y':
+                listEmails = splitEmails(fileLoc,locToSave)
+                return listEmails
+        elif mbox == 'i':
+            print "You can export your email from most common email clients, including gmail, to an archived .mbox file. This program can read that to build your archive to search through!"
+        
+    numEmails = raw_input("Please input the number of emails you have: ")
+    fileLoc = raw_input("Please enter the location of the emails you would like to add to the archive database: ")
+    fileNames = raw_input("Please enter the name of the files (ex: if files are testEmail1.txt, testEmail2.txt, please enter testEmail.txt): ")   
+    dot = fileNames.index('.')
+    listEmails = []
+    for i in range(int(numEmails)):
+        print "checking " + str(i)
+        name = fileNames[:dot] + str(i)
+        listEmails.append(fileLoc+fileNames[:dot]+str(i)+fileNames[dot:])
+    return listEmails
+
 ################ Main ################
 
 ## Main function that runs
 def main():
+    #allMail = getInfo()
+    allMail = ["testEmail1.txt", "testEmail2.txt", "testEmail3.txt", "testEmail4.txt"]
+    arrayMessages = []
+    for mail in allMail:
+        arrayMessages.append(Message(mail))
 
-    email1 = Message("testEmail1.txt")
-    print email1.getKeywords()
-
-    loadKeywords()
-    archive = setupArchive(["testEmail1.txt", "testEmail2.txt", "testEmail3.txt", "testEmail4.txt"])
+    #print archive
+    #loadKeywords()
+    
+    #arch = addToArchive(allMail)
     newMessage = ['nwea', 'testing', 'not', 'password']
-    result = checkSimilarity(archive,newMessage)
-    print result
-    best = []
-    for i in range(len(result)):
-        if result[i][1] > 0.990:
-            best.append(archive[result[i][0]])
+    dictionary, corpus, lsi = buildDictionary(archive)
+    result = checkSimilarity(dictionary,corpus,lsi,newMessage)
+    print arrayMessages[result[0][0]].getPlainText()
+    #best = []
+    #for i in range(len(result)):
+    #    if result[i][1] > 0.990:
+    #        best.append(archive[result[i][0]])
     #print "Best results are: " + str(best)
     #best = result[0][0]
     #print keywordList
