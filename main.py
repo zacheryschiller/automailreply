@@ -61,9 +61,6 @@ class Message:
     def getPlainText(self): 
         return self.plainText
 
-    def getCount(self): 
-        return self.messageCount
-
     def getKeywords(self): 
         return self.keywords
 
