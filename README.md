@@ -1,3 +1,6 @@
+NOTE: I am currently building a better version of this system for my graduate thesis. That project is currently private, but if you have questions please ask!
+=============
+
 automailreply
 =============
 People receive and respond to emails hundreds of times a week. In some professions, such as computer technicians, these emails constantly contain the same questions and responses to and from different people. A significant amount of time is spent on repeatedly answering the same questions. Systems exist through websites or phone machines where people with questions can be guided to the answer by narrowing down their search through a set database. These systems cannot evolve and often people want the response directly from the source, the individual they are emailing. Thus an automated email replying system could help both parties.
