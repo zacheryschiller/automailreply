@@ -1,4 +1,4 @@
-NOTE: I am currently building a better version of this system for my graduate thesis. That project is currently private, but if you have questions please ask!
+NOTE: This is an old version of the project I completed for my graduate thesis. To see the new version please go here: https://github.com/zacheryschiller/amr
 =============
 
 automailreply
